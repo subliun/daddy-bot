@@ -1,0 +1,20 @@
+#jar libs
+lib/
+
+#secret keys
+config.properties
+
+#sbt
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+.history
+.cache
+.lib/
+
+#idea
+out/
+.idea/

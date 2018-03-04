@@ -1,0 +1,15 @@
+package util
+
+//assume utf-8 encoding
+object FileUtil {
+
+  def readFile(path: String): String = {
+    val source = io.Source.fromFile(path)
+    try source.mkString finally source.close()
+  }
+
+  def readLines(path: String): Seq[String] = {
+    val source = io.Source.fromFile(path)
+    try source.getLines.toList finally source.close()
+  }
+}
