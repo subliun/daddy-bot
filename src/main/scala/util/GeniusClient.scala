@@ -12,7 +12,7 @@ class GeniusClient {
     val request = Http("https://api.genius.com/search").param("q", songTitle).param("access_token", authToken)
     val urlRegex = "\"url\":\"(.+?)\"".r
     val lyricsDivRegex = "<div class=\"lyrics\">([\\s\\S]+?)<\\/div>".r
-    val lyricsRegex = "([ \\w,'!;\\]\\[]+)(<br|<\\/a)".r
+    val lyricsRegex = "([ \\w,'\"!\\(\\)\\?;\\]\\[:]+)(<br|<\\/a)".r
 
     for (
       songUrl <- urlRegex.findFirstMatchIn(request.asString.body);

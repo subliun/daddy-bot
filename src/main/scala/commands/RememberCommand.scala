@@ -9,8 +9,8 @@ class RememberCommand extends CommandHandler {
 
   override def execute(executorName: String, args: String): String = {
     val writer = new FileWriter("memories.txt", true)
-    writer.append(args + "\n")
+    writer.append(args.trim() + "\n")
     writer.close()
-    s"Remembered ${args.split(" ").headOption.map("^" + _).getOrElse("nothing you dickhead")}"
+    s"Remembered ${args.split(" ").headOption.filterNot(_.replace("\n", "").isEmpty).map("^" + _).getOrElse("nothing you dickhead")}"
   }
 }

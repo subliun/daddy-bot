@@ -3,7 +3,7 @@ package commands
 import util.GeniusClient
 
 class LyricCommand extends CommandHandler {
-  override val command: Seq[String] = List("lyric")
+  override val command: Seq[String] = List("lyric", "lyrics")
   override val helpInfo: String = "Gets the lyrics for a song"
   override val usageText = "[song name]"
 

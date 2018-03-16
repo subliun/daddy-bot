@@ -14,5 +14,5 @@ abstract class CommandHandler {
 
   protected def execute(executorName: String, args: String): String
   //TODO I'm not happy about this
-  def executeCustom(executorName: String, args: String, channel: MessageChannel): String = execute(executorName, args)
+  def executeCustom(executorName: String, args: String, event: MessageReceivedEvent, channel: MessageChannel): String = execute(executorName, args)
 }

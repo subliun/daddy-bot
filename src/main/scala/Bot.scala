@@ -1,6 +1,7 @@
 import java.io.{File, FileWriter, PrintWriter}
 
 import commands._
+import commands.bene._
 import net.dv8tion.jda.core.{EmbedBuilder, JDA}
 import net.dv8tion.jda.core.entities.MessageEmbed
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
@@ -16,7 +17,9 @@ class Bot extends ListenerAdapter {
     new AestheticCommand(), new BootCommand(), new FlipCommand(),
     new LyricCommand(), new MarkovLyricCommand(), new PickCommand(), new QuestionCommand(),
     new QuoteCommand(), new RememberCommand(), new RollCommand(), new TalkCommand(),
-    new ToneCommand(), new TranslateCommand(), new TtsCommand(), new ZalgoCommand())
+    new ToneCommand(), new TranslateCommand(), new TtsCommand(), new ZalgoCommand(),
+    new BalanceCommand(), new BetCommand(), new BeneCommand(), new MugCommand(),
+    new TripleDipCommand(), new GiveCommand(), new DurryCommand())
 
   val commands: List[CommandHandler] = normalCommands :+ new HelpCommand(normalCommands)
 
@@ -34,7 +37,7 @@ class Bot extends ListenerAdapter {
       println(command)
       val result = commands
         .find(c => c.command.contains(command))
-        .map(_.executeCustom(name, content, channel))
+        .map(_.executeCustom(name, content, event, channel))
         .getOrElse(defaultCommand(command))
 
       if (!result.isEmpty) channel.sendMessage(result).queue()
@@ -48,7 +51,7 @@ class Bot extends ListenerAdapter {
     val message =
       for (
         memory <- memories.find(_.startsWith(commandString));
-        content <- Try(memory.split(" ").tail).toOption.map(_.mkString(" "))) yield content
+        content <- Try(memory.split(" ").filterNot(_.replace(" ", "").isEmpty).tail).toOption.map(_.mkString(" "))) yield content
 
     message.getOrElse("")
   }
