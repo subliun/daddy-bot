@@ -9,6 +9,7 @@ import scala.collection.JavaConverters._
 class MugCommand extends CommandHandler {
   override val command: Seq[String] = List("mug")
   override val helpInfo: String = "Steal money from another user."
+  override val usageText: String = "@[user to mug]"
 
   val bene = new Bene()
 

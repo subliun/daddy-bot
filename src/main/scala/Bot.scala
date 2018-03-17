@@ -29,7 +29,7 @@ class Bot extends ListenerAdapter {
     val message = event.getMessage.getContentDisplay
 
     println(s"Got message: $message")
-    if (message.contains("^") && !event.getAuthor.isBot) {
+    if (message.startsWith("^") && !event.getAuthor.isBot) {
       println("got content")
       val command = message.tail.split(" ").headOption.getOrElse("")
       val content = message.split(" ").tail.mkString(" ")
@@ -47,7 +47,7 @@ class Bot extends ListenerAdapter {
   }
 
   def defaultCommand(commandString: String): String = {
-    val memories = io.Source.fromFile("memories.txt").mkString.split("\n").reverse // reverse so that new memories can be created
+    val memories = io.Source.fromFile("memories.txt").mkString.split("\n").reverse // reverse so that new memories can be created by simply appending
     val message =
       for (
         memory <- memories.find(_.startsWith(commandString));

@@ -7,6 +7,12 @@ import scala.util.{Success, Try}
 
 //does not consider multithreading implications which might bite me at some point
 //should really use a mutex to lock balance when a command is being executed
+/*
+  assets:
+  security guards that protect you from being mugged
+  shares from actual stock market
+
+ */
 class Bene {
 
   val moneyFilePath = "money.txt"
@@ -21,11 +27,11 @@ class Bene {
   val lastPayTimes: mutable.Map[String, Long] = mutable.Map[String, Long]()
 
   val jailTime: Int = 60 * 5 // in seconds
-  val mugChance = 0.1
+  val mugChance = 0.15
   val lastJailTime: mutable.Map[String, Long] = mutable.Map[String, Long]()
 
   val tripleDipChance = 0.01
-  val tripleDipCooldown = 60 * 10 // seconds
+  val tripleDipCooldown = 0 //60 * 5 // seconds
   val tripleDipCost = 100
   val tripleDipWinnings = 20000
   val lastTripleDip: mutable.Map[String, Long] = mutable.Map[String, Long]()
@@ -98,7 +104,7 @@ class Bene {
   }
 
   def give(giverId: String, receiverId: String, receiverName: String, amountString: String): String = {
-    Try(amountString.toLong) match {
+    parseMoneyString(amountString) match {
       case Success(amount) =>
         if (giverId == receiverId) {
           "good job infinite money"
@@ -122,7 +128,7 @@ class Bene {
   def tripleDip(id: String, name: String): String = {
     if (lastTripleDip.get(id).isEmpty) lastTripleDip(id) = 0
 
-    if (System.currentTimeMillis() - lastTripleDip(id) > tripleDipCooldown * 1000) {
+    if (System.currentTimeMillis() - lastTripleDip(id) >= tripleDipCooldown * 1000) {
       lastTripleDip(id) = System.currentTimeMillis()
       val info = userInfoCreateIfAbsent(id)
       if(info.balance >= tripleDipCost) {
@@ -152,13 +158,13 @@ class Bene {
         "u can't mug the homeless"
       } else {
         if (Math.random() < mugChance) {
-          val amountStolen =  Math.floor(Math.random() * (mugee.balance / 5)).toLong
+          val amountStolen =  Math.floor(Math.random() * (mugee.balance / 4)).toLong
           updateBalance(mugeeId, mugee.balance - amountStolen)
           updateBalance(mugerId, muger.balance + amountStolen)
           "u managed to steal **$" + amountStolen + "** off " + mugeeName
         } else {
           lastJailTime(mugerId) = System.currentTimeMillis()
-          val fine = Math.floor(Math.random() * (muger.balance * 0.05)).toLong
+          val fine = Math.floor(Math.random() * (muger.balance * 0.02)).toLong
           updateBalance(mugerId, muger.balance - fine)
           "\uD83D\uDEA8\uD83D\uDC6E\uD83D\uDEA8**POLICE**\uD83D\uDEA8\uD83D\uDC6E\uD83D\uDEA8 Its the police! looks like u got caught. thats a **$" + fine + "** fine and five minutes in the big house for you!"
         }
@@ -178,7 +184,7 @@ class Bene {
   def bet(id: String, betString: String): String = {
     val info = userInfoCreateIfAbsent(id)
 
-    Try(betString.toLong) match {
+    parseMoneyString(betString) match {
       case Success(amount) =>
         if (info.balance <= 0) {
           "get outta here poor boy"
@@ -198,6 +204,10 @@ class Bene {
       case _ =>
         "you gotta put coins in the machine mate"
     }
+  }
+
+  def parseMoneyString(s: String): Try[Long] = {
+    Try(s.replace("$", "").toLong)
   }
 
   def userInfoCreateIfAbsent(id: String): UserInfo = {

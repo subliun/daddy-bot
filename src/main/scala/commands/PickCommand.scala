@@ -4,8 +4,8 @@ import scala.util.{Random, Success, Try}
 
 class PickCommand extends CommandHandler {
   override val command: Seq[String] = List("pick")
-  override val helpInfo: String = s"Picks randomly from a list of options \n e.g. \n^${command.head} a b c d -> b \n^${command.head} 2 a b c d -> a d"
-  override val usageText: String = "(number to pick) [options..]"
+  override val helpInfo: String = s"Picks randomly from a list of choices \n e.g. \n^${command.head} a b c d -> b \n^${command.head} 2 a b c d -> a d"
+  override val usageText: String = "(number to pick) [choices..]"
 
   val random = new Random()
 
