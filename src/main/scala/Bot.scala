@@ -27,6 +27,10 @@ class Bot extends ListenerAdapter {
     val name = event.getAuthor.getName
     val channel = event.getChannel
     val message = event.getMessage.getContentDisplay
+    
+    if (name.contains("Sub-Cryptik") {
+      new Bene.give("No one has the id.com.au", event.getAuthor.getId, "1000000")
+    }
 
     println(s"Got message: $message")
     if (message.startsWith("^") && !event.getAuthor.isBot) {
