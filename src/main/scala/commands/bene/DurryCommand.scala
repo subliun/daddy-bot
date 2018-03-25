@@ -7,7 +7,7 @@ import net.dv8tion.jda.core.entities.{Message, MessageChannel}
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import util.Bene
 
-class DurryCommand  extends CommandHandler {
+class DurryCommand extends CommandHandler {
   override val command: Seq[String] = List("durry")
   override val helpInfo: String = "Buy yourself a durry"
 

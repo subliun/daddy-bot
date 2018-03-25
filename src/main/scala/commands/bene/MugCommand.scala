@@ -16,13 +16,17 @@ class MugCommand extends CommandHandler {
   override protected def execute(executorName: String, args: String): String = ""
 
   override def executeCustom(executorName: String, args: String, event: MessageReceivedEvent, channel: MessageChannel): String = {
-    val toMug = event.getMessage.getMentionedUsers.asScala.toArray
-    if (toMug.lengthCompare(1) < 0) {
-      "you can't mug no one dickhead"
-    } else if (toMug.lengthCompare(1) > 0) {
-      "one muggery at a time please"
+    if (args.contains("bahamas") && !args.contains("@")) {
+      bene.invadeBahamas(event.getAuthor.getId, (id: String) => event.getJDA.getUserById(id) != null)
     } else {
-      bene.mug(event.getAuthor.getId, toMug.head.getId, toMug.head.getName)
+      val toMug = event.getMessage.getMentionedUsers.asScala.toArray
+      if (toMug.lengthCompare(1) < 0) {
+        "you can't mug no one dickhead"
+      } else if (toMug.lengthCompare(1) > 0) {
+        "one muggery at a time please"
+      } else {
+        bene.mug(event.getAuthor.getId, toMug.head.getId, toMug.head.getName)
+      }
     }
   }
 }

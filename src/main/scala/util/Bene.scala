@@ -9,6 +9,11 @@ import scala.util.{Success, Try}
 //should really use a mutex to lock balance when a command is being executed
 /*
   assets:
+  bets need to add to the existing bet
+  should be a way to get info on who's bet what on a bet
+  should be a way to lock bets, so no one can continue to bet
+
+  horse racing
   security guards that protect you from being mugged
   shares from actual stock market
 
@@ -16,10 +21,11 @@ import scala.util.{Success, Try}
 class Bene {
 
   val moneyFilePath = "money.txt"
+  val betsFilePath = "bets.txt"
 
   val startingBalance = 100
 
-  val betChance = 0.4
+  val betChance = 0.48
 
   val lowestBene = 50
   val highestBene = 300
@@ -36,8 +42,205 @@ class Bene {
   val tripleDipWinnings = 20000
   val lastTripleDip: mutable.Map[String, Long] = mutable.Map[String, Long]()
 
+  val raffleCost = 400
+
   //id is their snowflake id on discord and is guaranteed to be globally unique
-  case class UserInfo(id: String, balance: Long)
+  type UserId = String
+  case class UserInfo(id: UserId, balance: Long)
+
+  def readRaffleParticipants(): Seq[String] = {
+    FileUtil.readLines("raffle.txt")
+  }
+
+  def payoutRaffle(): String = {
+    ""
+  }
+
+  case class Bet(active: Boolean, id: Int, title: String, odds: Double, punters: Map[String, Long]) { //map from id to amount bet
+    def toSaveFormat: String = active + " " + id + " " + odds + " " + punters.toString + " " + title
+
+    def toPrintFormat: String = "#" + id + " - \"" + title + "\" - Chances: " + "%.2f".format(odds)
+  }
+
+  object Bet {
+    def fromSaveFormat(s: String): Option[Bet] = {
+      println("attempting to read from save format")
+      val split = s.split(" ")
+      val mapRegex = "Map\\((.*?)\\) (.+)".r
+      val mapContentRegex = "(\\d+?) -> (\\d+)".r
+
+      for (active <- split.headOption.map(_.startsWith("t"));
+           id <- split.lift(1);
+           odds <- split.lift(2);
+           matches <- mapRegex.findFirstMatchIn(s);
+           puntersMap <- Option(matches.group(1));
+           title <- Option(matches.group(2));) yield {
+        val mapContent = mapContentRegex.findAllMatchIn(puntersMap).toList
+        val punters = mapContent.map(c => c.group(1)).zip(mapContent.map(c => c.group(2).toLong))
+
+        println("Punters: " + punters)
+
+        val bet = Bet(active, id.toInt, title, odds.toDouble, punters.toMap)
+        println(bet)
+        bet
+      }
+    }
+  }
+
+  // for synchronization
+  class BettingHouse() {
+    def genUniqueBetId(): Int = {
+      Try(readBets().map(_.id).max).map(_ + 1).getOrElse(1) //starting id is 1
+    }
+
+    def saveBet(bet: Bet): Unit = {
+      FileUtil.append(betsFilePath, bet.toSaveFormat + "\n")
+    }
+
+    def findActiveBet(id: Int): Option[Bet] = {
+      readActiveBets().find(_.id == id)
+    }
+
+    def readActiveBets(): Seq[Bet] = {
+      readBets().filter(_.active)
+    }
+
+    def readBets(): Seq[Bet] = {
+      println("reading bets")
+      FileUtil.readLines(betsFilePath).flatMap(Bet.fromSaveFormat).reverse
+    }
+
+    def readBetFile(): String = {
+      FileUtil.readFile(betsFilePath)
+    }
+
+    def writeBetFile(s: String): Unit = {
+      FileUtil.write(betsFilePath, s)
+    }
+
+  }
+
+  val bettingHouse = new BettingHouse()
+
+  def createBet(creatorId: UserId, title: String, oddsString: String): String = {
+    bettingHouse.synchronized {
+      val splitOddsString = oddsString.split("/")
+      val maybeOdds = splitOddsString.headOption.flatMap(i => Try(i.toDouble / splitOddsString.last.toDouble).toOption)
+
+      println(maybeOdds)
+
+      if (title.trim().isEmpty) {
+        "you gotta bet on something happening"
+      } else {
+        maybeOdds match {
+          case Some(odds) =>
+            if (odds == 0.0) {
+              "no impossible bets please"
+            } else if (odds == 1.0) {
+              "if there's no risk there ain't no point playing"
+            } else {
+              val id = bettingHouse.genUniqueBetId()
+              bettingHouse.saveBet(Bet(active = true, id, title, odds, Map[String, Long]()))
+
+              "New bet registered with id #" + id + " with odds " + oddsString + " that \"" + title + "\"" +
+                s"\nTo place a bet on this happening say ^bet on #$id [amount]"
+            }
+          case _ =>
+            "fuck off those aren't good odds"
+        }
+      }
+    }
+  }
+
+  def betComplex(betterId: UserId, betIdString: String, amountString: String): String = {
+    bettingHouse.synchronized {
+      val info = userInfoCreateIfAbsent(betterId)
+
+      parseMoneyString(amountString) match {
+        case Success(amount) =>
+          parseBetIdString(betIdString).flatMap(bettingHouse.findActiveBet) match {
+            case Some(bet) =>
+              if (info.balance <= 0) {
+                "get outta here poor boy"
+              } else if (amount > info.balance) {
+                "you're too poor for that mate"
+              } else if (amount < 1) {
+                "u gotta bet money mate"
+              } else {
+                // appending works because we reverse the bet list upon reading it
+                val addedBet = betterId -> (bet.punters.getOrElse(betterId, 0L) + amount)
+                bettingHouse.saveBet(bet.copy(punters = bet.punters + addedBet))
+
+                updateBalance(info.id, info.balance - amount)
+
+                "you've bet **$" + amount + "** that " + bet.title + ". good luck bro!"
+              }
+
+            case _ =>
+              "you gotta bet on a real bet mate. check ur numbers"
+          }
+        case _ =>
+          "u gotta bet money mate"
+      }
+    }
+  }
+
+  private def parseBetIdString(betIdString: String): Option[Int] = {
+    Try(betIdString.replace("#", "").toInt).toOption
+  }
+
+  def completeBet(id: UserId, betIdString: String, outcomeString: String): String = {
+    bettingHouse.synchronized {
+      if (outcomeString.contains("w") || outcomeString.contains("l")) {
+        val outcome = outcomeString.contains("w")
+
+        parseBetIdString(betIdString).flatMap(bettingHouse.findActiveBet) match {
+          case Some(bet) =>
+            bet.punters.foreach(punter => {
+              val user = userInfoCreateIfAbsent(punter._1)
+              if (outcome) {
+                updateBalance(punter._1, user.balance + (punter._2 * (1 / bet.odds)).toLong)
+              }
+            })
+
+            deleteBet(id, bet.id.toString)
+
+            if (outcome) {
+              "congrats to all the gamblers on bet #" + bet.id + ". your winnings have been deposited to your accounts!"
+            } else {
+              "oh no you've all lost bet #" + bet.id
+            }
+          case _ =>
+            "that bet doesn't exist"
+        }
+      } else {
+        "you've either gotta win or lose, stop fucking up the formatting dingus"
+      }
+    }
+  }
+
+  def listActiveBets(): String = {
+    bettingHouse.synchronized {
+      val activeBets = bettingHouse.readActiveBets().groupBy(_.id).map(_._2.head).toList //only take unique ids
+        if (activeBets.nonEmpty) {
+          "**Active Bets in Casino Daddy:**\n" + activeBets.map(_.toPrintFormat).mkString("\n")
+        } else {
+          "there are no active bets ;_;"
+        }
+    }
+  }
+
+  def deleteBet(id: UserId, betIdString: String): String = {
+    bettingHouse.synchronized {
+      parseBetIdString(betIdString).flatMap(bettingHouse.findActiveBet) match {
+        case Some(bet) =>
+          bettingHouse.writeBetFile(bettingHouse.readBetFile().replaceAll("true " + bet.id, "false " + bet.id))
+          "bet #" + bet.id + " has been deleted"
+        case _ =>
+          "u can't delete that which never was, silly"
+      }
+    }
+  }
 
 
   def outputTime(timeInMillis: Long): String = {
@@ -51,7 +254,7 @@ class Bene {
     }
   }
 
-  def bene(id: String): String = {
+  def bene(id: UserId): String = {
     if (lastPayTimes.get(id).isEmpty) lastPayTimes(id) = 0
 
     if (System.currentTimeMillis() - lastPayTimes(id) > beneCooldown * 1000) {
@@ -66,7 +269,7 @@ class Bene {
     }
   }
 
-  def durry(id: String): (String, Boolean) = {
+  def durry(id: UserId): (String, Boolean) = {
     val user = userInfoCreateIfAbsent(id)
     val durryCost = 10
     if (user.balance < durryCost) {
@@ -103,7 +306,7 @@ class Bene {
 
   }
 
-  def give(giverId: String, receiverId: String, receiverName: String, amountString: String): String = {
+  def give(giverId: UserId, receiverId: UserId, receiverName: String, amountString: String): String = {
     parseMoneyString(amountString) match {
       case Success(amount) =>
         if (giverId == receiverId) {
@@ -125,7 +328,7 @@ class Bene {
     }
   }
 
-  def tripleDip(id: String, name: String): String = {
+  def tripleDip(id: UserId, name: String): String = {
     if (lastTripleDip.get(id).isEmpty) lastTripleDip(id) = 0
 
     if (System.currentTimeMillis() - lastTripleDip(id) >= tripleDipCooldown * 1000) {
@@ -147,7 +350,29 @@ class Bene {
     }
   }
 
-  def mug(mugerId: String, mugeeId: String, mugeeName: String): String = {
+  def invadeBahamas(mugerId: UserId, isIdValid: (String) => Boolean): String = {
+    val (validAccounts, offshoreAccounts) = retrieveAllUserInfo().partition(info => isIdValid(info.id))
+
+    var totalTaken: Long = 0
+    for (account <- offshoreAccounts) {
+      val amountTaken = account.balance
+      totalTaken += amountTaken
+      updateBalance(account.id, account.balance - amountTaken)
+    }
+
+    if (totalTaken > 0) {
+      for (account <- validAccounts) {
+        updateBalance(account.id, account.balance + (totalTaken / validAccounts.size))
+      }
+
+      "congratulations comrades. **$" + totalTaken + "** has been seized from " + offshoreAccounts.size + " offshore account(s) in the " +
+        "bahamas and redistributed to the working class. <3 communism"
+    } else {
+      "there is no money hiding in the bahamas"
+    }
+  }
+
+  def mug(mugerId: UserId, mugeeId: UserId, mugeeName: String): String = {
     if (lastJailTime.get(mugerId).isEmpty) lastJailTime(mugerId) = 0
 
     if (System.currentTimeMillis() - lastJailTime(mugerId) > jailTime * 1000) {
@@ -156,6 +381,8 @@ class Bene {
 
       if (mugee.balance <= 0) {
         "u can't mug the homeless"
+      } else if(mugee.id == muger.id) {
+        "now what would mugging yourself accomplish"
       } else {
         if (Math.random() < mugChance) {
           val amountStolen =  Math.floor(Math.random() * (mugee.balance / 4)).toLong
@@ -177,11 +404,11 @@ class Bene {
     }
   }
 
-  def balance(id: String): Long = {
+  def balance(id: UserId): Long = {
     userInfoCreateIfAbsent(id).balance
   }
 
-  def bet(id: String, betString: String): String = {
+  def bet(id: UserId, betString: String): String = {
     val info = userInfoCreateIfAbsent(id)
 
     parseMoneyString(betString) match {
@@ -210,7 +437,7 @@ class Bene {
     Try(s.replace("$", "").toLong)
   }
 
-  def userInfoCreateIfAbsent(id: String): UserInfo = {
+  def userInfoCreateIfAbsent(id: UserId): UserInfo = {
     retrieveUserInfo(id) match {
       case Some(info) =>
         info
@@ -222,12 +449,17 @@ class Bene {
     }
   }
 
-  def retrieveUserInfo(id: String): Option[UserInfo] = {
+  def retrieveUserInfo(id: UserId): Option[UserInfo] = {
     //reverse so that the newest balance is taken
     readMoneyFile().reverse.find(_.startsWith(id)).map(s => UserInfo(s.split(" ").head, Try(s.split(" ").last.toLong).getOrElse(0)))
   }
 
-  def createUser(id: String): Unit = {
+  def retrieveAllUserInfo(): Seq[UserInfo] = {
+    val ids = readMoneyFile().reverse.map(_.split(" ").head).distinct
+    ids.map(retrieveUserInfo).map(_.get)
+  }
+
+  def createUser(id: UserId): Unit = {
     updateBalance(id, startingBalance)
   }
 
@@ -235,9 +467,7 @@ class Bene {
     FileUtil.readLines(moneyFilePath)
   }
 
-  def updateBalance(id: String, newBalance: Long): Unit = {
-    val writer = new FileWriter(moneyFilePath, true)
-    writer.append(id + " " + (if(newBalance < 0) 0 else newBalance) + "\n")
-    writer.close()
+  def updateBalance(id: UserId, newBalance: Long): Unit = {
+    FileUtil.append(moneyFilePath, id + " " + (if(newBalance < 0) 0 else newBalance) + "\n")
   }
 }
