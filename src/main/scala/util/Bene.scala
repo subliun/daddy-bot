@@ -19,7 +19,7 @@ class Bene {
 
   val startingBalance = 100
 
-  val betChance = 0.4
+  val betChance = 0.5
 
   val lowestBene = 50
   val highestBene = 300
