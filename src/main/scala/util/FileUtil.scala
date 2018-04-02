@@ -6,12 +6,12 @@ import java.io.FileWriter
 object FileUtil {
 
   def readFile(path: String): String = {
-    val source = io.Source.fromFile(path)
+    val source = scala.io.Source.fromFile(path)
     try source.mkString finally source.close()
   }
 
   def readLines(path: String): Seq[String] = {
-    val source = io.Source.fromFile(path)
+    val source = scala.io.Source.fromFile(path)
     try source.getLines.toList finally source.close()
   }
 

@@ -13,4 +13,6 @@ libraryDependencies ++= Seq(
   "se.michaelthelin.spotify" % "spotify-web-api-java" % "2.0.0",
   "com.github.scribejava" % "scribejava-apis" % "5.0.0",
   "net.dv8tion" % "JDA" % "3.5.1_350",
-  "net.dean.jraw" % "JRAW" % "1.0.0")
+  "net.dean.jraw" % "JRAW" % "1.0.0",
+  "com.sedmelluq" % "lavaplayer" % "1.2.59",
+  "com.github.felixgail" % "gplaymusic" % "0.3.1")

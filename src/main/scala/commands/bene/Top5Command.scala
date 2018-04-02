@@ -6,6 +6,7 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import util.Bene
 
 import scala.util.Try
+import scala.collection.JavaConverters._
 
 class Top5Command extends CommandHandler {
   override val command: Seq[String] = List("top5")

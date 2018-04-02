@@ -3,7 +3,7 @@ package util
 import java.io.FileWriter
 
 import scala.collection.mutable
-import scala.util.{Success, Try}
+import scala.util.{Random, Success, Try}
 
 //does not consider multithreading implications which might bite me at some point
 //should really use a mutex to lock balance when a command is being executed
@@ -22,6 +22,7 @@ class Bene {
 
   val moneyFilePath = "money.txt"
   val betsFilePath = "bets.txt"
+  val raffleFilePath = "raffle.txt"
 
   val startingBalance = 100
 
@@ -33,27 +34,56 @@ class Bene {
   val lastPayTimes: mutable.Map[String, Long] = mutable.Map[String, Long]()
 
   val jailTime: Int = 60 * 5 // in seconds
-  val mugChance = 0.15
+  val mugChance = 0.18
   val lastJailTime: mutable.Map[String, Long] = mutable.Map[String, Long]()
 
   val tripleDipChance = 0.01
-  val tripleDipCooldown = 0 //60 * 5 // seconds
+  val tripleDipCooldown = 8 //1 // seconds
   val tripleDipCost = 100
   val tripleDipWinnings = 20000
   val lastTripleDip: mutable.Map[String, Long] = mutable.Map[String, Long]()
 
-  val raffleCost = 400
+  val raffleCost = 100
+  val rafflePayoutThreashold = 10000
+  val daddyId = "410801919507038228"
 
   //id is their snowflake id on discord and is guaranteed to be globally unique
   type UserId = String
   case class UserInfo(id: UserId, balance: Long)
 
-  def readRaffleParticipants(): Seq[String] = {
-    FileUtil.readLines("raffle.txt")
+  def readRaffleParticipants(): Seq[(UserId, String)] = {
+    FileUtil.readLines(raffleFilePath).map(s => (s.split(" ").head, s.split(" ").tail.mkString))
+  }
+
+  def buyRaffleTicket(id: UserId, name: String): String = {
+    val info = userInfoCreateIfAbsent(id)
+
+    if (info.balance < raffleCost) {
+      "ur too poor for the raffle mate"
+    } else if(readRaffleParticipants().map(_._1).contains(info.id)) {
+      "you've already bought a ticket and you can't buy two"
+    } else {
+      FileUtil.append(raffleFilePath, id + " " + name + "\n")
+      updateBalance(id, info.balance - raffleCost)
+      "you've bought a raffle ticket for **$" + raffleCost + "**. good luck mate"
+    }
   }
 
   def payoutRaffle(): String = {
-    ""
+    Random.shuffle(readRaffleParticipants()).headOption match {
+      case Some(t) =>
+        val winnerInfo = userInfoCreateIfAbsent(t._1)
+        val daddyBotInfo = userInfoCreateIfAbsent(daddyId)
+
+        val payout = daddyBotInfo.balance / 4
+        updateBalance(winnerInfo.id, winnerInfo.balance + payout)
+        updateBalance(daddyBotInfo.id, 0L)
+
+        FileUtil.write(raffleFilePath, "")
+        t._2 + " has won the raffle! **$" + payout + "** has been deposited into their account"
+      case _ =>
+        "the raffle got payed out but nobody entered ;_;"
+    }
   }
 
   case class Bet(active: Boolean, id: Int, title: String, odds: Double, punters: Map[String, Long]) { //map from id to amount bet
@@ -74,7 +104,7 @@ class Bene {
            odds <- split.lift(2);
            matches <- mapRegex.findFirstMatchIn(s);
            puntersMap <- Option(matches.group(1));
-           title <- Option(matches.group(2));) yield {
+           title <- Option(matches.group(2))) yield {
         val mapContent = mapContentRegex.findAllMatchIn(puntersMap).toList
         val punters = mapContent.map(c => c.group(1)).zip(mapContent.map(c => c.group(2).toLong))
 
@@ -346,7 +376,7 @@ class Bene {
         "lucky you're poor - the lotto is a scam"
       }
     } else {
-      lastTripleDip.get(id).map(millis => "u gotta wait for " + outputTime(tripleDipCooldown * 1000 - (System.currentTimeMillis() - millis)) + " mate").getOrElse("i fucked up")
+      lastTripleDip.get(id).map(millis => "bugger off and go to bed").getOrElse("oh no")//"u gotta wait for " + outputTime(tripleDipCooldown * 1000 - (System.currentTimeMillis() - millis)) + " mate").getOrElse("i fucked up")
     }
   }
 
@@ -410,6 +440,7 @@ class Bene {
 
   def bet(id: UserId, betString: String): String = {
     val info = userInfoCreateIfAbsent(id)
+    val daddyBotInfo = userInfoCreateIfAbsent(daddyId)
 
     parseMoneyString(betString) match {
       case Success(amount) =>
@@ -422,10 +453,18 @@ class Bene {
         } else {
           if (Math.random() < betChance) {
             updateBalance(id, info.balance + amount)
+
             "bro you won! wow **$" + amount + "**, that's heaps good! drinks on u ay"
           } else {
             updateBalance(id, info.balance - amount)
-            "shit man, you lost **$" + amount + "**. better not let the middy know"
+            updateBalance(daddyBotInfo.id, daddyBotInfo.balance + amount)
+
+            val raffleResult =
+              if (daddyBotInfo.balance + amount >= rafflePayoutThreashold) {
+                payoutRaffle()
+              } else ""
+
+            "shit man, you lost **$" + amount + "**. better not let the middy know" + "\n" + raffleResult
           }
         }
       case _ =>
