@@ -20,7 +20,7 @@ class Bot extends ListenerAdapter {
     new ToneCommand(), new TranslateCommand(), new TtsCommand(), new ZalgoCommand(),
     new BalanceCommand(), new BetCommand(), new BeneCommand(), new MugCommand(),
     new TripleDipCommand(), new GiveCommand(), new DurryCommand(), new Top5Command(),
-    new BetListCommand())
+    new BetListCommand(), new RaffleCommand())
 
   val commands: List[CommandHandler] = normalCommands :+ new HelpCommand(normalCommands)
 

@@ -1,5 +1,7 @@
 package commands
 
+import util.FileUtil
+
 import scala.util.Random
 
 class QuoteCommand extends CommandHandler {
@@ -9,7 +11,7 @@ class QuoteCommand extends CommandHandler {
 
   override protected def execute(executorName: String, args: String): String = {
     val regex = "(.+) - [“\"](.+?)[”\"] - ([\\w- ]+)".r
-    val quotes = io.Source.fromFile("quotes.txt").mkString
+    val quotes = FileUtil.readFile("quotes.txt")
     var matches = regex.findAllMatchIn(quotes).toList
 
     if (!args.isEmpty) {

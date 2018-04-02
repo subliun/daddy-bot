@@ -29,7 +29,8 @@ class BetCommand extends CommandHandler {
   override def executeCustom(executorName: String, args: String, event: MessageReceivedEvent, channel: MessageChannel): String = {
     val splitArgs = args.split(" ")
     if (splitArgs.length == 1) {
-      bene.bet(event.getAuthor.getId, args)
+      bene.bet(event.getAuthor.getId, args).split("\n").foreach(channel.sendMessage(_).queue())
+      ""
     } else {
       val output = splitArgs.head match {
         case "on" =>
