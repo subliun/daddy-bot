@@ -2,11 +2,12 @@ import java.io.{File, FileWriter, PrintWriter}
 
 import commands._
 import commands.bene._
+import music.MusicHandler
 import net.dv8tion.jda.core.{EmbedBuilder, JDA}
 import net.dv8tion.jda.core.entities.MessageEmbed
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.ListenerAdapter
-import util.{Boot, GeniusClient}
+import util.{Boot, FileUtil, GeniusClient}
 
 import scala.util.{Random, Success, Try}
 
@@ -20,7 +21,7 @@ class Bot extends ListenerAdapter {
     new ToneCommand(), new TranslateCommand(), new TtsCommand(), new ZalgoCommand(),
     new BalanceCommand(), new BetCommand(), new BeneCommand(), new MugCommand(),
     new TripleDipCommand(), new GiveCommand(), new DurryCommand(), new Top5Command(),
-    new BetListCommand(), new RaffleCommand())
+    new BetListCommand(), new RaffleCommand(), new MusicCommand())
 
   val commands: List[CommandHandler] = normalCommands :+ new HelpCommand(normalCommands)
 
@@ -48,7 +49,7 @@ class Bot extends ListenerAdapter {
   }
 
   def defaultCommand(commandString: String): String = {
-    val memories = io.Source.fromFile("memories.txt").mkString.split("\n").reverse // reverse so that new memories can be created by simply appending
+    val memories = FileUtil.readLines("memories.txt").reverse // reverse so that new memories can be created by simply appending
     val message =
       for (
         memory <- memories.find(_.startsWith(commandString));

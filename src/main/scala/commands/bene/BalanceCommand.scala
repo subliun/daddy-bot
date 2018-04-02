@@ -18,11 +18,12 @@ class BalanceCommand extends CommandHandler {
     if (args.isEmpty) {
       "You currently have **$" + bene.balance(event.getAuthor.getId) + "** in the bnz"
     } else {
-      val users = event.getMessage.getMentionedUsers
+      val users = event.getMessage.getMentionedUsers.asScala.toList
+      println(users)
       if (users.size <= 0) {
         "sorry bro they're with kiwibank"
       } else {
-        users.asScala.map(user =>
+        users.map(user =>
           s"${user.getName}" + " currently has **$" + bene.balance(user.getId) + "** in the bnz").mkString("\n")
       }
     }
