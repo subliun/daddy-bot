@@ -105,7 +105,7 @@ class MusicHandler extends ListenerAdapter {
             loadedTrack
           }, TrackInfo(song.getTitle, song.getArtist))
 
-          channel.sendMessage("Loaded track to queue: **" + track.info.title + " - " + track.info.artist + "**").queue()
+          channel.sendMessage("Loaded track to queue: **" + track.toString + "**").queue()
           play(guild, musicManager, track, toJoin)
         case None =>
           channel.sendMessage("I don't know that song pal").queue()
@@ -119,8 +119,10 @@ class MusicHandler extends ListenerAdapter {
     musicManager.scheduler.queue(track)
   }
 
-  def skipTrack(guild: Guild): Unit = {
+  def skipTrack(guild: Guild): Boolean = {
+    val wasSkipped = getGuildAudioPlayer(guild).scheduler.nowPlaying.isDefined
     getGuildAudioPlayer(guild).scheduler.nextTrack()
+    wasSkipped
   }
 
   def join(guild: Guild, voiceChannel: VoiceChannel): Unit = {
@@ -133,13 +135,14 @@ class MusicHandler extends ListenerAdapter {
 
   def listQueue(guild: Guild): String = {
     val scheduler = getGuildAudioPlayer(guild).scheduler
-    val tracks = (scheduler.queue.asScala.toList ++ scheduler.nowPlaying).reverse
+    val tracks = scheduler.nowPlaying ++ scheduler.queue.asScala.toList
+    println(tracks)
 
     if (tracks.isEmpty) {
       "there's nothing in the queue"
     } else {
       //avoid intellij highlighting issue by using case
-      tracks.zipWithIndex.map { case(track: AudioTrack, i: Int) => "**" + (i + 1) + ". " + track.getInfo.title + "**"}.mkString("\n")
+      tracks.zipWithIndex.map { case(track: BotTrack, i: Int) => (i + 1) + ". **" + track.toString + "**"}.mkString("\n")
     }
   }
 

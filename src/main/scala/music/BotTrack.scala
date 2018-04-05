@@ -8,4 +8,8 @@ import scala.concurrent.Future
 
 case class TrackInfo(title: String, artist: String)
 
-case class BotTrack(fetchTrack: () => Option[AudioTrack], info: TrackInfo)
+case class BotTrack(fetchTrack: () => Option[AudioTrack], info: TrackInfo) {
+  override def toString: String = {
+    info.title + " - " + info.artist
+  }
+}

@@ -5,6 +5,9 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack
 
 class GuildMusicManager(manager: AudioPlayerManager, onTrackStart: (AudioTrack) => Unit) {
   val player: AudioPlayer = manager.createPlayer()
+  val volume = 20
+  player.setVolume(volume)
+
   val scheduler = new TrackScheduler(player)
   player.addListener(scheduler)
 

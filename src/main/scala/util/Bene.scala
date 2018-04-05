@@ -65,7 +65,7 @@ class Bene {
     } else {
       FileUtil.append(raffleFilePath, id + " " + name + "\n")
       updateBalance(id, info.balance - raffleCost)
-      "you've bought a raffle ticket for **$" + raffleCost + "**. good luck mate"
+      "you've bought a raffle ticket for **" + formatMoney(raffleCost) + "**. good luck mate"
     }
   }
 
@@ -80,7 +80,7 @@ class Bene {
         updateBalance(daddyBotInfo.id, 0L)
 
         FileUtil.write(raffleFilePath, "")
-        t._2 + " has won the raffle! **$" + payout + "** has been deposited into their account"
+        t._2 + " has won the raffle! **" + formatMoney(payout) + "** has been deposited into their account"
       case _ =>
         "the raffle got payed out but nobody entered ;_;"
     }
@@ -203,7 +203,7 @@ class Bene {
 
                 updateBalance(info.id, info.balance - amount)
 
-                "you've bet **$" + amount + "** that " + bet.title + ". good luck bro!"
+                "you've bet **" + formatMoney(amount) + "** that " + bet.title + ". good luck bro!"
               }
 
             case _ =>
@@ -217,6 +217,13 @@ class Bene {
 
   private def parseBetIdString(betIdString: String): Option[Int] = {
     Try(betIdString.replace("#", "").toInt).toOption
+  }
+
+  private def formatMoney(amount: Long): String = {
+    "$" + amount.toString.zipWithIndex.map(t => {
+      val i = amount.toString.length - (t._2 + 1)
+      if (i % 3 == 0 && i != 0) t._1 + "," else t._1
+    }).mkString
   }
 
   def completeBet(id: UserId, betIdString: String, outcomeString: String): String = {
@@ -293,7 +300,7 @@ class Bene {
       val payout = Math.floor(lowestBene +  Math.random() * (highestBene - lowestBene)).toLong
       val newBalance = info.balance + payout
       updateBalance(id, newBalance)
-      "winz just gave you **$" + payout + "**. u now have **$" + newBalance + "**. congrats"
+      "winz just gave you **" + formatMoney(payout) + "**. u now have **" + formatMoney(newBalance) + "**. congrats"
     } else {
       lastPayTimes.get(id).map(millis => "u gotta wait for " + outputTime(beneCooldown * 1000 - (System.currentTimeMillis() - millis)) + " mate").getOrElse("i fucked up")
     }
@@ -306,7 +313,7 @@ class Bene {
       ("u can't afford that mate", false)
     } else {
       updateBalance(id, user.balance - durryCost)
-      ("you've bought a durry for **$" + durryCost + "**", true)
+      ("you've bought a durry for **" + formatMoney(durryCost) + "**", true)
     }
   }
 
@@ -351,7 +358,7 @@ class Bene {
           } else {
             updateBalance(giverId, giver.balance - amount)
             updateBalance(receiverId, receiver.balance + amount)
-            "you gave **$" + amount + "** to " + receiverName
+            "you gave **" + formatMoney(amount) + "** to " + receiverName
           }
         }
       case _ => "cmon man help a brother out"
@@ -368,9 +375,9 @@ class Bene {
         updateBalance(id, info.balance - tripleDipCost)
         if (Math.random() < tripleDipChance) {
           updateBalance(id, info.balance + tripleDipWinnings)
-          "WINNER! WINNER! WINNER! " + name + " just won the jackpot! $" + tripleDipWinnings + " has been awarded to them! WINNER! WINNER! WINNER!"
+          "WINNER! WINNER! WINNER! " + name + " just won the jackpot! " + formatMoney(tripleDipWinnings) + " has been awarded to them! WINNER! WINNER! WINNER!"
         } else {
-          "You bought a ticket for **$" + tripleDipCost + "**. Unfortunately you had no luck winning this time."
+          "You bought a ticket for **" + formatMoney(tripleDipCost) + "**. Unfortunately you had no luck winning this time."
         }
       } else {
         "lucky you're poor - the lotto is a scam"
@@ -395,7 +402,7 @@ class Bene {
         updateBalance(account.id, account.balance + (totalTaken / validAccounts.size))
       }
 
-      "congratulations comrades. **$" + totalTaken + "** has been seized from " + offshoreAccounts.size + " offshore account(s) in the " +
+      "congratulations comrades. **" + formatMoney(totalTaken) + "** has been seized from " + offshoreAccounts.size + " offshore account(s) in the " +
         "bahamas and redistributed to the working class. <3 communism"
     } else {
       "there is no money hiding in the bahamas"
@@ -418,7 +425,7 @@ class Bene {
           val amountStolen =  Math.floor(Math.random() * (mugee.balance / 4)).toLong
           updateBalance(mugeeId, mugee.balance - amountStolen)
           updateBalance(mugerId, muger.balance + amountStolen)
-          "u managed to steal **$" + amountStolen + "** off " + mugeeName
+          "u managed to steal **" + formatMoney(amountStolen) + "** off " + mugeeName
         } else {
           lastJailTime(mugerId) = System.currentTimeMillis()
           val fine = Math.floor(Math.random() * (muger.balance * 0.02)).toLong
@@ -454,7 +461,7 @@ class Bene {
           if (Math.random() < betChance) {
             updateBalance(id, info.balance + amount)
 
-            "bro you won! wow **$" + amount + "**, that's heaps good! drinks on u ay"
+            "bro you won! wow **" + formatMoney(amount) + "**, that's heaps good! drinks on u ay"
           } else {
             updateBalance(id, info.balance - amount)
             updateBalance(daddyBotInfo.id, daddyBotInfo.balance + amount)
@@ -464,7 +471,7 @@ class Bene {
                 payoutRaffle()
               } else ""
 
-            "shit man, you lost **$" + amount + "**. better not let the middy know" + "\n" + raffleResult
+            "shit man, you lost **" + formatMoney(amount) + "**. better not let the middy know" + "\n" + raffleResult
           }
         }
       case _ =>

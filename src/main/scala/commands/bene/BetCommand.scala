@@ -24,8 +24,6 @@ class BetCommand extends CommandHandler {
 
   override protected def execute(executorName: String, args: String): String = ""
 
-  val adminId = "305966076515319809" //subliun's discord id
-
   override def executeCustom(executorName: String, args: String, event: MessageReceivedEvent, channel: MessageChannel): String = {
     val splitArgs = args.split(" ")
     if (splitArgs.length == 1) {

@@ -8,6 +8,8 @@ abstract class CommandHandler {
   val helpInfo: String
   val usageText: String = ""
 
+  final val adminId = "305966076515319809" //subliun's discord id
+
   def usage: Option[String] = if (usageText.isEmpty) None else Some(s"${command.head} $usageText")
 
   def onMessage(event: MessageReceivedEvent, name: String, message: String, channel: MessageChannel): Unit = Unit
